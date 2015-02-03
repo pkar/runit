@@ -1,26 +1,36 @@
 package runit
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/pkar/runit/vendor/log"
 )
 
 type Runner struct {
-	cmdIn       string
-	cmd         *exec.Cmd
-	watchPath   string
-	restartChan chan bool
+	cmdIn        string
+	cmd          *exec.Cmd
+	watchPath    string
+	restartChan  chan bool
+	shutdownChan chan bool
+	mu           *sync.Mutex
 }
 
-// Run initializes a command runner and watches for changes
+// New initializes a command runner and watches for changes
 // in path if watch is given.
-func Run(cmdIn string, watchPath string) (*Runner, error) {
+func New(cmdIn string, watchPath string) (*Runner, error) {
+	if cmdIn == "" {
+		return nil, fmt.Errorf("no command defined")
+	}
 	runner := &Runner{
-		cmdIn:     cmdIn,
-		watchPath: watchPath,
+		cmdIn:        cmdIn,
+		watchPath:    watchPath,
+		mu:           &sync.Mutex{},
+		shutdownChan: make(chan bool),
 	}
 	if watchPath != "" {
 		var err error
@@ -30,47 +40,101 @@ func Run(cmdIn string, watchPath string) (*Runner, error) {
 		}
 	}
 
-	go runner.runCmd()
-	go func() {
-		for {
-			select {
-			case <-runner.restartChan:
-				err := runner.Restart()
-				if err != nil {
-					log.Error(err)
-				}
-			}
-		}
-	}()
-
 	return runner, nil
 }
 
-// runCmd ...
-func (r *Runner) runCmd() {
+// Run runs the subprocess with optional keep alive
+// if it fails.
+func (r *Runner) Run(alive bool) error {
+	if r.watchPath != "" {
+		go r.RestartListen()
+	}
+	if !alive {
+		return r.runCmd()
+	}
+	go func() {
+		for {
+			select {
+			case <-r.shutdownChan:
+				if r.watchPath != "" {
+					r.shutdownChan <- true
+				}
+				return
+			default:
+				log.Infof("running %s", r.cmdIn)
+				err := r.runCmd()
+				if err != nil {
+					log.Error(err)
+				}
+				r.cmd.Wait()
+				time.Sleep(time.Second)
+			}
+		}
+	}()
+	return nil
+}
+
+// RestartListen waits for restart events.
+func (r *Runner) RestartListen() {
+	for {
+		select {
+		case <-r.restartChan:
+			log.Infof("restart event")
+			err := r.Restart()
+			if err != nil {
+				log.Error(err)
+			}
+			r.cmd.Wait()
+		case <-r.shutdownChan:
+			return
+		}
+	}
+}
+
+// runCmd starts and waits for a command
+// to complete.
+func (r *Runner) runCmd() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	log.Infof("running %s", r.cmdIn)
+
 	tokens := strings.Split(r.cmdIn, " ")
 	r.cmd = exec.Command(tokens[0], tokens[1:]...)
 	r.cmd.Stdin = os.Stdin
 	r.cmd.Stdout = os.Stdout
+
 	err := r.cmd.Start()
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = r.cmd.Wait()
 	if err != nil {
 		log.Error(err)
 	}
+	return err
+}
+
+// Kill stops the runners subprocess
+func (r *Runner) Kill() error {
+	log.Info("killing subprocess")
+	err := r.cmd.Process.Kill()
+	if err != nil {
+		log.Error(err)
+	}
+	return err
+	return nil
+}
+
+// Shutdown signals closing of the application.
+func (r *Runner) Shutdown() {
+	log.Info("shutting down")
+	r.Kill()
+	r.shutdownChan <- true
 }
 
 // Restart kills the runners subprocess and starts up a
 // new one
 func (r *Runner) Restart() error {
-	log.Info("restart event ", r.cmdIn)
-	err := r.cmd.Process.Kill()
+	log.Info("restarting")
+	err := r.Kill()
 	if err != nil {
 		log.Error(err)
 	}
-	r.runCmd()
-
-	return nil
+	return r.runCmd()
 }
