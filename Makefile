@@ -4,7 +4,8 @@ CMD               = $(REPO)/cmd/$(COMPONENT)
 IMAGE_NAME        = $(COMPONENT)
 IMAGE_TAG         = latest
 IMAGE_SPEC        = $(IMAGE_NAME):$(IMAGE_TAG)
-UNAME             := $(shell uname)
+UNAME             := $(shell uname | awk '{print tolower($0)}')
+TAG               = v0.0.1
 
 vendor:
 	git remote add -f log git@github.com:pkar/log.git
@@ -24,22 +25,20 @@ build_docker:
 	docker run -v $(CURDIR)/bin/linux_amd64:/go/bin $(IMAGE_SPEC) go install $(CMD)
 
 build_linux:
-	go get ./...
 	mkdir -p bin/linux_amd64
 	GOARCH=amd64 GOOS=linux go build -o bin/linux_amd64/$(COMPONENT) ./cmd/$(COMPONENT)/main.go
 
-build_mac:
-	go get ./...
+build_darwin:
 	mkdir -p bin/darwin_amd64
 	go build -o bin/darwin_amd64/$(COMPONENT) ./cmd/$(COMPONENT)/main.go
 
 build:
-ifeq ($(UNAME),Darwin)
-	$(MAKE) build_mac
-endif
-ifeq ($(UNAME),Linux)
-	$(MAKE) build_linux
-endif
+	$(MAKE) build_$(UNAME)
+
+release:
+	$(MAKE) build
+	cd bin/$(UNAME)_amd64 && tar -czvf runit-$(TAG).$(UNAME).tar.gz runit
+	mv bin/$(UNAME)_amd64/runit-$(TAG).$(UNAME).tar.gz bin/
 
 install:
 	go install $(CMD)
