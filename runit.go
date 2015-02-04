@@ -113,13 +113,15 @@ func (r *Runner) runCmd() error {
 
 // Kill stops the runners subprocess
 func (r *Runner) Kill() error {
-	log.Info("killing subprocess")
+	if r.cmd.Process == nil {
+		return nil
+	}
+	log.Infof("killing subprocess")
 	err := r.cmd.Process.Kill()
 	if err != nil {
 		log.Error(err)
 	}
 	return err
-	return nil
 }
 
 // Shutdown signals closing of the application.

@@ -22,7 +22,7 @@ func TestNewNoCommand(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-	runner, err := New("echo", "")
+	runner, err := New("true", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func TestRun(t *testing.T) {
 }
 
 func TestRunKeepAlive(t *testing.T) {
-	runner, err := New("echo", "")
+	runner, err := New("true", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestRestart(t *testing.T) {
 }
 
 func TestRestartListen(t *testing.T) {
-	runner, err := New("echo", "test")
+	runner, err := New("true", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func TestRestartListen(t *testing.T) {
 }
 
 func TestWatch(t *testing.T) {
-	runner, err := New("echo", "test")
+	runner, err := New("true", "test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -104,7 +104,7 @@ func TestWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("testing creating test file")
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 
 	// write file
 	err = ioutil.WriteFile("test/test.txt", []byte("goodbye"), 0644)
@@ -112,7 +112,7 @@ func TestWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("testing writing to test file")
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 
 	// rename file
 	err = os.Rename("test/test.txt", "test/test1.txt")
@@ -120,7 +120,7 @@ func TestWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("testing renaming test file")
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 
 	// remove
 	err = os.Remove("test/test1.txt")
@@ -128,7 +128,7 @@ func TestWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("testing removing test file")
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 
 	t.Log("cleanup test dir")
 	err = os.RemoveAll("test/test")
@@ -142,7 +142,7 @@ func TestWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("testing creating test dir")
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 	err = os.RemoveAll("test/test")
 	if err != nil {
 		t.Fatal(err)
@@ -152,7 +152,7 @@ func TestWatch(t *testing.T) {
 }
 
 func TestWatchInvalidPath(t *testing.T) {
-	_, err := New("echo", "nothere")
+	_, err := New("true", "nothere")
 	if err == nil {
 		t.Fatal("should get no folders to watch here")
 	}
