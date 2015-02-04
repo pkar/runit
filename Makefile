@@ -5,7 +5,7 @@ IMAGE_NAME        = $(COMPONENT)
 IMAGE_TAG         = latest
 IMAGE_SPEC        = $(IMAGE_NAME):$(IMAGE_TAG)
 UNAME             := $(shell uname | awk '{print tolower($0)}')
-TAG               = v0.0.1
+TAG               = v0.0.2
 
 vendor:
 	git remote add -f log git@github.com:pkar/log.git
@@ -47,6 +47,9 @@ run:
 	go run cmd/$(COMPONENT)/main.go
 
 test:
+	go test -cover .
+
+testv:
 	go test -v -cover .
 
 testf:
