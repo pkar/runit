@@ -37,6 +37,7 @@ func New(cmdIn string, watchPath string) (*Runner, error) {
 		runner.restartChan, err = runner.Watch()
 		if err != nil {
 			log.Error(err)
+			return nil, err
 		}
 	}
 
