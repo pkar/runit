@@ -9,8 +9,8 @@ for use in Docker containers.
 Can be found in [releases](https://github.com/pkar/runit/releases)
 
 ```bash
-$ curl -o runit-v0.0.1.linux.tar.gz -L https://github.com/pkar/runit/releases/download/v0.0.1/runit-v0.0.1.linux.tar.gz
-$ tar -xzvf runit-v0.0.1.linux.tar.gz
+$ curl -o runit-v0.0.2.linux.tar.gz -L https://github.com/pkar/runit/releases/download/v0.0.2/runit-v0.0.2.linux.tar.gz
+$ tar -xzvf runit-v0.0.2.linux.tar.gz
 $ mv runit /usr/local/bin/
 ```
 
