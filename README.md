@@ -11,7 +11,7 @@ Can be found in [releases](https://github.com/pkar/runit/releases)
 ```bash
 $ curl -o runit-v0.0.2.linux.tar.gz -L https://github.com/pkar/runit/releases/download/v0.0.2/runit-v0.0.2.linux.tar.gz
 $ tar -xzvf runit-v0.0.2.linux.tar.gz
-$ mv runit /usr/local/bin/
+$ chmod +x runit && mv runit /usr/local/bin/
 ```
 
 ### Running
@@ -33,7 +33,7 @@ foo
 
 $ # long running processes without watch
 $ # process can be restarted by sending sighup to runit or
-# # or killing the subprocess cmd
+$ # or killing the subprocess cmd
 $ # kill -SIGHUP $PID
 $ runit -alive -cmd="test/test.sh"
 INFO 2015/02/03 20:54:59 runit.go:100: running test/test.sh
@@ -42,7 +42,6 @@ foo
 foo
 foo
 ^C
-
 ```
 
 ### Tests
