@@ -47,11 +47,14 @@ run:
 	go run cmd/$(COMPONENT)/main.go
 
 test:
-	go test -cover ./...
+	go test -v -cover .
 
 testf:
 	# make testf TEST=TestRunCmd
 	go test -v -test.run="$(TEST)"
+
+testrace:
+	go test -race .
 
 bench:
 	go test ./... -bench=.
@@ -65,4 +68,4 @@ coverprofile:
 	# check heatmap
 	go tool cover -html=coverage.out
 
-.PHONY: vendor
+.PHONY: vendor test install release build
