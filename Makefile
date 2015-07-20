@@ -8,15 +8,11 @@ UNAME             := $(shell uname | awk '{print tolower($0)}')
 TAG               = v0.0.2
 
 vendor:
-	git remote add -f log git@github.com:pkar/log.git
-	git subtree add --squash --prefix=vendor/log log master
 	git remote add -f fsnotify git@github.com:go-fsnotify/fsnotify.git
 	git subtree add --squash --prefix=vendor/fsnotify fsnotify master
 	$(MAKE) vendor_sync
 
 vendor_sync:
-	git fetch log
-	git subtree pull --message "merge log" --squash --prefix=vendor/log log master
 	git fetch fsnotify
 	git subtree pull --message "merge fsnotify" --squash --prefix=vendor/fsnotify fsnotify master
 

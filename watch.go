@@ -2,12 +2,12 @@ package runit
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/pkar/runit/vendor/fsnotify"
-	"github.com/pkar/runit/vendor/log"
 )
 
 // Watch watches the runner watch path for changes and
@@ -17,7 +17,7 @@ func (r *Runner) Watch() (chan bool, error) {
 
 	watcher, err := NewRecursiveWatcher(r.watchPath)
 	if err != nil {
-		log.Error(err)
+		log.Println(err)
 		return restartChan, err
 	}
 
@@ -25,42 +25,42 @@ func (r *Runner) Watch() (chan bool, error) {
 		for {
 			select {
 			case event := <-watcher.Events:
-				log.Debug("event: ", event)
+				log.Println("event: ", event)
 				switch {
 				case event.Op&fsnotify.Create == fsnotify.Create:
 					// create a file/directory
 					fi, err := os.Stat(event.Name)
 					if err != nil {
 						// eg. stat .subl513.tmp : no such file or directory
-						log.Error(err)
+						log.Println(err)
 						continue
 					}
 
 					if fi.IsDir() {
-						log.Infof("Detected new directory %s", event.Name)
+						log.Printf("Detected new directory %s", event.Name)
 						if !shouldIgnoreFile(filepath.Base(event.Name)) {
 							watcher.AddFolder(event.Name)
 						}
 						continue
 					}
 					// created a file
-					log.Infof("Detected new file %s", event.Name)
+					log.Printf("Detected new file %s", event.Name)
 					watcher.Files <- event.Name
 					restartChan <- true
 				case event.Op&fsnotify.Write == fsnotify.Write:
-					log.Infof("modified file: %s", event.Name)
+					log.Printf("modified file: %s", event.Name)
 					watcher.Files <- event.Name
 					restartChan <- true
 				case event.Op&fsnotify.Remove == fsnotify.Remove:
-					log.Infof("removed file: %s", event.Name)
+					log.Printf("removed file: %s", event.Name)
 					restartChan <- true
 				case event.Op&fsnotify.Rename == fsnotify.Rename:
-					log.Infof("renamed file: %s", event.Name)
+					log.Printf("renamed file: %s", event.Name)
 					restartChan <- true
 				}
 
 			case err := <-watcher.Errors:
-				log.Error(err)
+				log.Println(err)
 			}
 		}
 	}()
@@ -101,7 +101,7 @@ func NewRecursiveWatcher(path string) (*RecursiveWatcher, error) {
 func (watcher *RecursiveWatcher) AddFolder(folder string) {
 	err := watcher.Add(folder)
 	if err != nil {
-		log.Errorf("Error watching: %s %v", folder, err)
+		log.Println("Error watching: %s %v", folder, err)
 	}
 	watcher.Folders <- folder
 }

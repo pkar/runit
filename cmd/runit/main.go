@@ -5,19 +5,17 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"log"
 
 	"github.com/pkar/runit"
-	"github.com/pkar/runit/vendor/log"
 )
 
 func main() {
-	logLevel := flag.Uint("loglevel", 1, "logging level, 0 debug *optional")
 	cmd := flag.String("cmd", "", "command to run *required")
 	alive := flag.Bool("alive", false, "try to keep the command alive if it dies *optional")
 	watchPath := flag.String("watch", "", "path to directory or file to watch *optional")
 	flag.Parse()
 
-	log.SetLevel(*logLevel)
 	if *cmd == "" {
 		flag.PrintDefaults()
 		os.Exit(1)
@@ -37,7 +35,7 @@ func main() {
 	for {
 		select {
 		case sig := <-interrupt:
-			log.Debugf("captured %v", sig)
+			log.Printf("captured %v", sig)
 			switch sig {
 			case syscall.SIGHUP:
 				runner.Restart()

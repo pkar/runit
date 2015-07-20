@@ -2,13 +2,13 @@ package runit
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/pkar/runit/vendor/log"
 )
 
 type Runner struct {
@@ -36,7 +36,7 @@ func New(cmdIn string, watchPath string) (*Runner, error) {
 		var err error
 		runner.restartChan, err = runner.Watch()
 		if err != nil {
-			log.Error(err)
+			log.Println(err)
 			return nil, err
 		}
 	}
@@ -62,10 +62,10 @@ func (r *Runner) Run(alive bool) error {
 				}
 				return
 			default:
-				log.Infof("running %s", r.cmdIn)
+				log.Printf("running %s", r.cmdIn)
 				err := r.runCmd()
 				if err != nil {
-					log.Error(err)
+					log.Println(err)
 				}
 				r.cmd.Wait()
 				time.Sleep(time.Second)
@@ -80,10 +80,10 @@ func (r *Runner) RestartListen() {
 	for {
 		select {
 		case <-r.restartChan:
-			log.Infof("restart event")
+			log.Println("restart event")
 			err := r.Restart()
 			if err != nil {
-				log.Error(err)
+				log.Println(err)
 			}
 			r.cmd.Wait()
 		case <-r.shutdownChan:
@@ -97,7 +97,7 @@ func (r *Runner) RestartListen() {
 func (r *Runner) runCmd() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	log.Infof("running %s", r.cmdIn)
+	log.Printf("running %s", r.cmdIn)
 
 	tokens := strings.Split(r.cmdIn, " ")
 	r.cmd = exec.Command(tokens[0], tokens[1:]...)
@@ -106,7 +106,7 @@ func (r *Runner) runCmd() error {
 
 	err := r.cmd.Start()
 	if err != nil {
-		log.Error(err)
+		log.Println(err)
 	}
 	return err
 }
@@ -116,17 +116,17 @@ func (r *Runner) Kill() error {
 	if r.cmd.Process == nil {
 		return nil
 	}
-	log.Infof("killing subprocess")
+	log.Println("killing subprocess")
 	err := r.cmd.Process.Kill()
 	if err != nil {
-		log.Error(err)
+		log.Println(err)
 	}
 	return err
 }
 
 // Shutdown signals closing of the application.
 func (r *Runner) Shutdown() {
-	log.Info("shutting down")
+	log.Println("shutting down")
 	r.Kill()
 	r.shutdownChan <- true
 }
@@ -134,10 +134,10 @@ func (r *Runner) Shutdown() {
 // Restart kills the runners subprocess and starts up a
 // new one
 func (r *Runner) Restart() error {
-	log.Info("restarting")
+	log.Println("restarting")
 	err := r.Kill()
 	if err != nil {
-		log.Error(err)
+		log.Println(err)
 	}
 	return r.runCmd()
 }
