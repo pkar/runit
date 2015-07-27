@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
 )
 
 type Runner struct {
@@ -42,6 +41,11 @@ func New(cmdIn string, watchPath string) (*Runner, error) {
 	}
 
 	return runner, nil
+}
+
+// Wait for the running command to complete.
+func (r *Runner) Wait() error {
+	return r.cmd.Wait()
 }
 
 // Run runs the subprocess with optional keep alive
@@ -92,8 +96,8 @@ func (r *Runner) RestartListen() {
 	}
 }
 
-// runCmd starts and waits for a command
-// to complete.
+// runCmd starts the command and doesn't wait
+// for it to complete.
 func (r *Runner) runCmd() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

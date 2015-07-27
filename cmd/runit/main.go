@@ -2,13 +2,25 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
-	"log"
 
 	"github.com/pkar/runit"
 )
+
+func getExitStatus(waitError error) (int, error) {
+	exitError, ok := waitError.(*exec.ExitError)
+	if ok {
+		waitStatus, ok := exitError.Sys().(syscall.WaitStatus)
+		if ok {
+			return waitStatus.ExitStatus(), nil
+		}
+	}
+	return 1, waitError
+}
 
 func main() {
 	cmd := flag.String("cmd", "", "command to run *required")
@@ -30,6 +42,20 @@ func main() {
 		log.Fatal(err)
 	}
 
+	exitChan := make(chan int, 1)
+	if !*alive && *watchPath == "" {
+		go func() {
+			exitStatus := 0
+			if err := runner.Wait(); err != nil {
+				exitStatus, err = getExitStatus(err)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+			exitChan <- exitStatus
+		}()
+	}
+
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt)
 	for {
@@ -45,6 +71,8 @@ func main() {
 			default:
 				continue
 			}
+		case exitCode := <-exitChan:
+			os.Exit(exitCode)
 		}
 	}
 }
