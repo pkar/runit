@@ -101,7 +101,7 @@ func NewRecursiveWatcher(path string) (*RecursiveWatcher, error) {
 func (watcher *RecursiveWatcher) AddFolder(folder string) {
 	err := watcher.Add(folder)
 	if err != nil {
-		log.Println("Error watching: %s %v", folder, err)
+		log.Printf("Error watching: %s %v\n", folder, err)
 	}
 	watcher.Folders <- folder
 }
