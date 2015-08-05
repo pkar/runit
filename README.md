@@ -17,13 +17,23 @@ $ chmod +x runit && mv runit /usr/local/bin/
 ### Running
 
 ```bash
-$ runit -cmd="echo blah" -watch=./
-INFO 2015/02/03 20:54:23 runit.go:100: running echo blah
+$ runit --cmd="echo blah" --watch=./
+2015/08/04 21:46:01 running echo blah
 blah
-^C
+2015/08/04 21:46:01 captured child exited continue...
+2015/08/04 21:46:05 event:  "foo": CREATE
+2015/08/04 21:46:05 Detected new file foo
+2015/08/04 21:46:05 restart event
+2015/08/04 21:46:05 restarting
+2015/08/04 21:46:05 killing subprocess
+2015/08/04 21:46:05 running echo blah
+blah
+2015/08/04 21:46:05 captured child exited continue...
+2015/08/04 21:46:05 event:  "foo": CHMOD
+2015/08/04 21:46:05 event:  "foo": CHMOD
 
-$ # long running processes with keep alive and watch
-$ runit -alive -cmd="test/test.sh" -watch=./
+$ # long running processes with restart and watch
+$ runit --restart --watch . --cmd="test/test.sh"
 INFO 2015/02/03 20:54:59 runit.go:100: running test/test.sh
 foo
 foo
@@ -35,19 +45,36 @@ $ # long running processes without watch
 $ # process can be restarted by sending sighup to runit or
 $ # or killing the subprocess cmd
 $ # kill -SIGHUP $PID
-$ runit -alive -cmd="test/test.sh"
-INFO 2015/02/03 20:54:59 runit.go:100: running test/test.sh
+$ runit --restart --watch . --cmd="test/test.sh"
+2015/08/04 21:47:14 running test/test.sh
+2015/08/04 21:47:14 running test/test.sh
 foo
 foo
 foo
 foo
-^C
-```
+foo
+foo
+foo
+2015/08/04 21:47:20 event:  "foo": CHMOD
+foo
+foo
+foo
+^C2015/08/04 21:47:24 captured interrupt
+
+### Development
+
+1. Set gopath and go get github.com/pkar/runit
+2. cd src/github.com/pkar/runit
+3. ./make.sh <command>
 
 ### Tests
 
 ```bash
-$ make test
-go test -cover .
-ok  	github.com/pkar/runit	5.529s	coverage: 89.9% of statements
+$ ./make.sh test
++ eval test
+++ test
+++ go test -cover .
+ok  	github.com/pkar/runit	5.536s	coverage: 89.2% of statements
+++ golint .
+++ go tool vet --composites=false .
 ```
