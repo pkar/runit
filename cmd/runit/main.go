@@ -22,9 +22,30 @@ func getExitStatus(waitError error) (int, error) {
 	return 1, waitError
 }
 
+func wait(runner *runit.Runner, interrupt chan os.Signal) int {
+	signal.Notify(interrupt)
+	for {
+		select {
+		case sig := <-interrupt:
+			switch sig {
+			case syscall.SIGHUP:
+				log.Printf("captured %v restarting...", sig)
+				runner.Restart()
+				continue
+			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL:
+				log.Printf("captured %v", sig)
+				return 0
+			default:
+				log.Printf("captured %v continue...", sig)
+				continue
+			}
+		}
+	}
+}
+
 func main() {
 	cmd := flag.String("cmd", "", "command to run *required")
-	alive := flag.Bool("alive", false, "try to keep the command alive if it dies *optional")
+	restart := flag.Bool("restart", false, "try to keep the command alive if it dies *optional")
 	watchPath := flag.String("watch", "", "path to directory or file to watch *optional")
 	flag.Parse()
 
@@ -37,42 +58,24 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = runner.Run(*alive)
+	err = runner.Run(*restart)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	exitChan := make(chan int, 1)
-	if !*alive && *watchPath == "" {
-		go func() {
-			exitStatus := 0
-			if err := runner.Wait(); err != nil {
-				exitStatus, err = getExitStatus(err)
-				if err != nil {
-					log.Fatal(err)
-				}
+	if !*restart && *watchPath == "" {
+		exitStatus := 0
+		if err := runner.Wait(); err != nil {
+			exitStatus, err = getExitStatus(err)
+			if err != nil {
+				log.Println(err)
+				os.Exit(exitStatus)
 			}
-			exitChan <- exitStatus
-		}()
+		}
+		os.Exit(exitStatus)
 	}
 
 	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt)
-	for {
-		select {
-		case sig := <-interrupt:
-			log.Printf("captured %v", sig)
-			switch sig {
-			case syscall.SIGHUP:
-				runner.Restart()
-				continue
-			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL:
-				os.Exit(0)
-			default:
-				continue
-			}
-		case exitCode := <-exitChan:
-			os.Exit(exitCode)
-		}
-	}
+	status := wait(runner, interrupt)
+	os.Exit(status)
 }
