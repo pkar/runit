@@ -47,7 +47,11 @@ foo
 ### Tests
 
 ```bash
-$ make test
-go test -cover .
-ok  	github.com/pkar/runit	5.529s	coverage: 89.9% of statements
+$ ./make.sh test
++ eval test
+++ test
+++ go test -cover .
+ok  	github.com/pkar/runit	5.536s	coverage: 89.2% of statements
+++ golint .
+++ go tool vet --composites=false .
 ```

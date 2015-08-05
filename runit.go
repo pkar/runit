@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// Runner ...
 type Runner struct {
 	cmdIn        string
 	cmd          *exec.Cmd
