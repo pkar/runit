@@ -37,19 +37,20 @@ install() {
 	cp bin/${UNAME}_${ARCH}/$COMPONENT-$TAG /usr/local/bin/$COMPONENT
 }
 
+_release() {
+	build
+	cd bin/${UNAME}_amd64
+	tar -czvf runit-${TAG}.${UNAME}.tar.gz runit
+	cd -
+	mv bin/${UNAME}_amd64/runit-${TAG}.${UNAME}.tar.gz bin/
+}
+
 release() {
 	UNAME=linux
-	build
-	cd bin/${UNAME}_amd64
-	tar -czvf runit-${TAG}.${UNAME}.tar.gz runit
-	cd -
-	mv bin/${UNAME}_amd64/runit-${TAG}.${UNAME}.tar.gz bin/
+	_release
 	UNAME=darwin
-	build
-	cd bin/${UNAME}_amd64
-	tar -czvf runit-${TAG}.${UNAME}.tar.gz runit
-	cd -
-	mv bin/${UNAME}_amd64/runit-${TAG}.${UNAME}.tar.gz bin/
+	_release
+	UNAME=darwin
 }
 
 test() {

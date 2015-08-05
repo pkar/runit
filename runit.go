@@ -20,6 +20,10 @@ type Runner struct {
 	mu           *sync.Mutex
 }
 
+func init() {
+	log.SetFlags(log.Lshortfile | log.Ldate | log.Ltime)
+}
+
 // New initializes a command runner and watches for changes
 // in path if watch is given.
 func New(cmdIn string, watchPath string) (*Runner, error) {
@@ -108,6 +112,7 @@ func (r *Runner) runCmd() error {
 	r.cmd = exec.Command(tokens[0], tokens[1:]...)
 	r.cmd.Stdin = os.Stdin
 	r.cmd.Stdout = os.Stdout
+	r.cmd.Stderr = os.Stderr
 
 	err := r.cmd.Start()
 	if err != nil {
