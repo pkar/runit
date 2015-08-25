@@ -11,15 +11,17 @@ import (
 	"github.com/pkar/runit"
 )
 
-func getExitStatus(waitError error) (int, error) {
+// getExitStatus determines the exit status code of an err
+// from a command that was run.
+func getExitStatus(waitError error) int {
 	exitError, ok := waitError.(*exec.ExitError)
 	if ok {
 		waitStatus, ok := exitError.Sys().(syscall.WaitStatus)
 		if ok {
-			return waitStatus.ExitStatus(), nil
+			return waitStatus.ExitStatus()
 		}
 	}
-	return 1, waitError
+	return 1
 }
 
 func wait(runner *runit.Runner, interrupt chan os.Signal) int {
@@ -66,10 +68,9 @@ func main() {
 	if !*restart && *watchPath == "" {
 		exitStatus := 0
 		if err := runner.Wait(); err != nil {
-			exitStatus, err = getExitStatus(err)
+			exitStatus = getExitStatus(err)
 			if err != nil {
 				log.Println(err)
-				os.Exit(exitStatus)
 			}
 		}
 		os.Exit(exitStatus)
