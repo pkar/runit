@@ -1,0 +1,11 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "github.com/go-fsnotify/fsnotify",
+			"repository": "https://github.com/go-fsnotify/fsnotify",
+			"revision": "6549b98005f3e4026ad9f50ef7d5011f40ba1397",
+			"branch": "master"
+		}
+	]
+}

@@ -2,11 +2,9 @@
 set -eu
 
 PWD=`pwd`
-ROOT=../../../../ # root/src/github.com/pkar/runit
 UNAME=${UNAME:-`uname | tr '[:upper:]' '[:lower:]'`}
 ARCH=${ARCH:-"amd64"}
 GOOS=${GOOS:-"linux"}
-GOPATH="${PWD}/${ROOT}"
 PATH="$PWD/vendor/bin:$PWD/bin/$ARCH:$PWD:$PATH"
 IMAGE_TAG=$(git branch | cut -d ' ' -f 2 | tr -d '\040\011\012\015' | tr "/" "_")
 REPO=github.com/pkar/runit
@@ -17,11 +15,13 @@ TAG=v0.0.3
 REPO=github.com/pkar/$COMPONENT
 CMD=$REPO/cmd/$COMPONENT
 PACKAGE=${PACKAGE:-""}
+GO15VENDOREXPERIMENT=1
 
 set -x
 
 path() {
 	set +x
+	echo export GO15VENDOREXPERIMENT=1
 	echo export GOPATH=$GOPATH
 	echo export PATH=$PATH
 }
@@ -79,13 +79,8 @@ bench() {
 }
 
 vendor() {
-	git remote add -f fsnotify git@github.com:go-fsnotify/fsnotify.git
-	git subtree add --squash --prefix=vendor/fsnotify fsnotify master
-}
-
-vendor_sync() {
-	git fetch fsnotify
-	git subtree pull --message "merge fsnotify" --squash --prefix=vendor/fsnotify fsnotify master
+	go get -u github.com/FiloSottile/gvt
+	gvt fetch github.com/go-fsnotify/fsnotify
 }
 
 docker_test() {

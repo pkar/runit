@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkar/runit/vendor/fsnotify"
+	"github.com/go-fsnotify/fsnotify"
 )
 
 // Watch watches the runner watch path for changes and

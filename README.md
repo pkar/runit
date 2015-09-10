@@ -60,6 +60,7 @@ foo
 foo
 foo
 ^C2015/08/04 21:47:24 captured interrupt
+```
 
 ### Development
 
