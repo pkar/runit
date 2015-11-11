@@ -8,20 +8,14 @@ import (
 	"time"
 )
 
-const (
-	// MAXERRORS is a hardcoded maximum number of attempts
-	// to run a process before quitting.
-	MAXERRORS = 10
-)
-
 // Runner ...
 type Runner struct {
 	cmdIn        string
-	Cmd          *exec.Cmd
+	cmd          *exec.Cmd
 	WatchPath    string
-	MaxErrors    int
 	Alive        bool
-	restartChan  chan bool
+	Interrupt    chan os.Signal
+	eventChan    chan bool
 	shutdownChan chan struct{}
 	mu           *sync.Mutex
 }
@@ -33,16 +27,16 @@ func New(cmdIn string, watchPath string, alive bool) (*Runner, error) {
 		return nil, fmt.Errorf("no command defined")
 	}
 	runner := &Runner{
-		MaxErrors:    MAXERRORS,
 		cmdIn:        cmdIn,
 		WatchPath:    watchPath,
 		Alive:        alive,
 		mu:           &sync.Mutex{},
 		shutdownChan: make(chan struct{}),
+		Interrupt:    make(chan os.Signal, 1),
 	}
 	if watchPath != "" {
 		var err error
-		runner.restartChan, err = runner.Watch(runner.shutdownChan)
+		runner.eventChan, err = runner.Watch(runner.shutdownChan)
 		if err != nil {
 			return nil, err
 		}
@@ -51,33 +45,50 @@ func New(cmdIn string, watchPath string, alive bool) (*Runner, error) {
 	return runner, nil
 }
 
-// Run runs the subprocess with optional keep alive
-// if it fails. If Alive is not set it will just
-// finish the command and return. Optionally if
-// Alive and WatchPath are set it will restart on
-// file changes.
-func (r *Runner) Run() error {
-	if !r.Alive {
-		err := r.startCmd()
-		if err != nil {
-			return err
-		}
-		return r.Cmd.Wait()
+// Do determines the type of process to run based on Alive and WatchPath.
+// It returns the exit status and any error.
+func (r *Runner) Do() (int, error) {
+	// just run the command and return.
+	if !r.Alive && r.WatchPath == "" {
+		return r.Run()
 	}
 
-	if r.WatchPath != "" {
+	// begin the command
+	err := r.Start()
+	if err != nil {
+		return 1, err
+	}
+	status := WaitFunc(r.Kill, r.Interrupt)
+	return status, nil
+}
+
+// Run runs a subprocess and waits for it status
+// to return.
+func (r *Runner) Run() (int, error) {
+	err := r.startCmd()
+	if err != nil {
+		return 1, err
+	}
+	exitStatus := 0
+	if err = r.cmd.Wait(); err != nil {
+		exitStatus = GetExitStatus(err)
+	}
+	return exitStatus, err
+}
+
+// Start begins the subprocess. If Alive and WatchPath
+// are set it will restart on file changes.
+// This should be used with Runner.WaitFunc or something
+// like it.
+func (r *Runner) Start() error {
+	if r.WatchPath != "" || r.Alive {
 		go r.RestartListen()
 	}
-	nErrs := 0
-	go func(nerrs int) {
+	go func() {
 		for {
-			if nerrs > r.MaxErrors {
-				return
-			}
 			err := r.startCmd()
 			if err != nil {
 				perror(err)
-				nErrs++
 				time.Sleep(time.Second)
 			}
 
@@ -85,16 +96,11 @@ func (r *Runner) Run() error {
 			case <-r.shutdownChan:
 				return
 			default:
-				err := r.Cmd.Wait()
-				if err != nil {
-					nErrs++
-				}
+				// run the command and restart after finished.
+				r.cmd.Wait()
 			}
 		}
-	}(nErrs)
-	if nErrs >= r.MaxErrors {
-		return fmt.Errorf("maximum error retries attempted")
-	}
+	}()
 	return nil
 }
 
@@ -102,14 +108,12 @@ func (r *Runner) Run() error {
 func (r *Runner) RestartListen() {
 	for {
 		select {
-		case <-r.restartChan:
+		case <-r.eventChan:
 			pinfof("restart event")
-			err := r.Restart()
+			err := r.Kill()
 			if err != nil {
 				perror(err)
-				return
 			}
-			//r.Cmd.Wait()
 		case <-r.shutdownChan:
 			return
 		}
@@ -121,14 +125,15 @@ func (r *Runner) RestartListen() {
 func (r *Runner) startCmd() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	pinfof("running %s", r.cmdIn)
 
-	r.Cmd = exec.Command("bash", "-c", "-e", r.cmdIn)
-	r.Cmd.Stdin = os.Stdin
-	r.Cmd.Stdout = os.Stdout
-	r.Cmd.Stderr = os.Stderr
+	pdebugf("running %s", r.cmdIn)
 
-	err := r.Cmd.Start()
+	r.cmd = exec.Command("bash", "-c", "-e", r.cmdIn)
+	r.cmd.Stdin = os.Stdin
+	r.cmd.Stdout = os.Stdout
+	r.cmd.Stderr = os.Stderr
+
+	err := r.cmd.Start()
 	if err != nil {
 		perror(err)
 	}
@@ -137,15 +142,14 @@ func (r *Runner) startCmd() error {
 
 // Kill stops the runners subprocess
 func (r *Runner) Kill() error {
-	if r.Cmd == nil || r.Cmd.Process == nil {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.cmd == nil || r.cmd.Process == nil {
 		return nil
 	}
 	pinfof("killing subprocess")
-	err := r.Cmd.Process.Kill()
-	if err != nil {
-		perror(err)
-	}
-	return err
+	return r.cmd.Process.Kill()
 }
 
 // Shutdown signals closing of the application.
@@ -153,12 +157,4 @@ func (r *Runner) Shutdown() {
 	pinfof("shutting down")
 	r.Kill()
 	close(r.shutdownChan)
-}
-
-// Restart kills the runners subprocess and starts up a
-// new one
-func (r *Runner) Restart() error {
-	pdebug("restarting")
-	err := r.Kill()
-	return err
 }

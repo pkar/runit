@@ -10,12 +10,12 @@ import (
 // Watch watches the runner watch path for changes and
 // notifies the runner of change events.
 func (r *Runner) Watch(shutdown <-chan struct{}) (chan bool, error) {
-	restartChan := make(chan bool, 2)
+	restartChan := make(chan bool)
 
 	watcher, err := NewRecursiveWatcher(r.WatchPath)
 	if err != nil {
 		perror(err)
-		return restartChan, err
+		return nil, err
 	}
 
 	go func(restart chan<- bool) {
@@ -45,19 +45,16 @@ func (r *Runner) Watch(shutdown <-chan struct{}) (chan bool, error) {
 						continue
 					}
 					// created a file
-					watcher.Files <- event.Name
 					restart <- true
-					pdebugf("added new file: %s", event.Name)
+					pdebugf("new file: %s", event.Name)
 				case event.Op&fsnotify.Write == fsnotify.Write:
-					watcher.Files <- event.Name
 					restart <- true
-					pdebugf("added modified file: %s", event.Name)
+					pdebugf("modified file: %s", event.Name)
 				case event.Op&fsnotify.Remove == fsnotify.Remove:
-					restart <- true
 					watcher.Remove(event.Name)
+					restart <- true
 					pdebugf("removed file: %s", event.Name)
 				case event.Op&fsnotify.Chmod == fsnotify.Chmod:
-					restart <- true
 					pdebugf("chmod file: %s", event.Name)
 				case event.Op&fsnotify.Rename == fsnotify.Rename:
 					// renaming a file triggers a create event

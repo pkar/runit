@@ -25,24 +25,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = runner.Run()
+
+	exitStatus, err := runner.Do()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
-
-	// just run the command and exit.
-	if !*alive && *watchPath == "" {
-		exitStatus := 0
-		if err := runner.Cmd.Wait(); err != nil {
-			exitStatus, err = runit.GetExitStatus(err)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-		os.Exit(exitStatus)
-	}
-
-	interrupt := make(chan os.Signal, 1)
-	status := runit.Wait(runner.Restart, interrupt)
-	os.Exit(status)
+	os.Exit(exitStatus)
 }

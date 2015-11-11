@@ -1,23 +1,70 @@
 package runit
 
+// TODO better synchronization to exit rather than time.Sleep
+
 import (
 	"io/ioutil"
 	"os"
+	"syscall"
 	"testing"
 	"time"
 )
 
+func init() {
+	LogLevel = 0
+}
+
 func TestNew(t *testing.T) {
 	_, err := New("ls", "test", false)
+	t.Log(err)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
 }
 
 func TestNewNoCommand(t *testing.T) {
-	_, err := New("", "abc", false)
+	_, err := New("", "test", false)
 	if err == nil {
-		t.Fatal("cmd empty should be err")
+		t.Error("cmd empty should be err")
+	}
+}
+
+func TestNewWatchInvalidPath(t *testing.T) {
+	_, err := New("true", "nothere", false)
+	if err == nil {
+		t.Fatal("should get no folders to watch here")
+	}
+}
+
+func TestDoRun(t *testing.T) {
+	runner, err := New("true", "", false)
+	if err != nil {
+		t.Error(err)
+	}
+	status, err := runner.Do()
+	if err != nil {
+		t.Error(err)
+	}
+	if status != 0 {
+		t.Error("status not 0 got", status)
+	}
+}
+
+func TestDoStart(t *testing.T) {
+	r, err := New("true", "", true)
+	if err != nil {
+		t.Error(err)
+	}
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		r.Interrupt <- syscall.SIGINT
+	}()
+	status, err := r.Do()
+	if err != nil {
+		t.Error(err)
+	}
+	if status != 0 {
+		t.Error("status not 0 got", status)
 	}
 }
 
@@ -26,77 +73,84 @@ func TestRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = runner.Run()
+	status, err := runner.Run()
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-func TestRunKeepAlive(t *testing.T) {
-	runner, err := New("true", "", true)
-	if err != nil {
-		t.Fatal(err)
+	if status != 0 {
+		t.Error("status not 0 got", status)
 	}
-	err = runner.Run()
-	if err != nil {
-		t.Fatal(err)
-	}
-	time.Sleep(1 * time.Second)
-	runner.Shutdown()
 }
 
 func TestKill(t *testing.T) {
-	runner, err := New("test/test.sh", "", false)
+	r, err := New("sleep 1", "", true)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
-	err = runner.Run()
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		r.Interrupt <- syscall.SIGINT
+	}()
+	status, err := r.Do()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
-	time.Sleep(1 * time.Second)
-	err = runner.Kill()
-	if err != nil {
-		t.Fatal(err)
+	if status != 0 {
+		t.Error("status not 0 got", status)
 	}
-	runner.Shutdown()
+	r.Kill()
 }
 
-func TestRestart(t *testing.T) {
-	runner, err := New("test/test.sh", "", false)
+func TestShutdown(t *testing.T) {
+	r, err := New("sleep 1", "", true)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
-	err = runner.Run()
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		r.Interrupt <- syscall.SIGINT
+	}()
+	status, err := r.Do()
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
-	err = runner.Restart()
-	if err != nil {
-		t.Fatal(err)
+	if status != 0 {
+		t.Error("status not 0 got", status)
 	}
-	runner.Kill()
+	r.Shutdown()
 }
 
-func TestRestartListen(t *testing.T) {
-	runner, err := New("true", "test", false)
+func TestSighup(t *testing.T) {
+	r, err := New("sleep 1", "", true)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
-	err = runner.Run()
-	if err != nil {
-		t.Fatal(err)
-	}
-	runner.restartChan <- true
-	runner.Kill()
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		r.Interrupt <- syscall.SIGHUP
+		r.Interrupt <- syscall.SIGINT
+	}()
+	r.Do()
 }
 
 func TestWatch(t *testing.T) {
-	runner, err := New("true", "test", false)
+	r, err := New("true", "test", true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = runner.Run()
+	defer func() {
+		os.RemoveAll("test/test")
+	}()
+
+	go func() {
+		time.Sleep(3 * time.Second)
+		r.Interrupt <- syscall.SIGINT
+	}()
+
+	_, err = r.Do()
+	if err != nil {
+		t.Error(err)
+	}
 
 	// create file
 	err = ioutil.WriteFile("test/test.txt", []byte("hello"), 0644)
@@ -104,7 +158,6 @@ func TestWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("testing creating test file")
-	time.Sleep(500 * time.Millisecond)
 
 	// write file
 	err = ioutil.WriteFile("test/test.txt", []byte("goodbye"), 0644)
@@ -112,7 +165,6 @@ func TestWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("testing writing to test file")
-	time.Sleep(500 * time.Millisecond)
 
 	// rename file
 	err = os.Rename("test/test.txt", "test/test1.txt")
@@ -120,7 +172,6 @@ func TestWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("testing renaming test file")
-	time.Sleep(500 * time.Millisecond)
 
 	// remove
 	err = os.Remove("test/test1.txt")
@@ -128,7 +179,6 @@ func TestWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("testing removing test file")
-	time.Sleep(500 * time.Millisecond)
 
 	t.Log("cleanup test dir")
 	err = os.RemoveAll("test/test")
@@ -142,18 +192,4 @@ func TestWatch(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Log("testing creating test dir")
-	time.Sleep(500 * time.Millisecond)
-	err = os.RemoveAll("test/test")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	runner.Shutdown()
-}
-
-func TestWatchInvalidPath(t *testing.T) {
-	_, err := New("true", "nothere", false)
-	if err == nil {
-		t.Fatal("should get no folders to watch here")
-	}
 }
