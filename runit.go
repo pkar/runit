@@ -58,7 +58,11 @@ func New(cmdIn string, watchPath string, alive bool) (*Runner, error) {
 // file changes.
 func (r *Runner) Run() error {
 	if !r.Alive {
-		return r.startCmd()
+		err := r.startCmd()
+		if err != nil {
+			return err
+		}
+		return r.Cmd.Wait()
 	}
 
 	if r.WatchPath != "" {
@@ -81,7 +85,10 @@ func (r *Runner) Run() error {
 			case <-r.shutdownChan:
 				return
 			default:
-				r.Cmd.Wait()
+				err := r.Cmd.Wait()
+				if err != nil {
+					nErrs++
+				}
 			}
 		}
 	}(nErrs)
