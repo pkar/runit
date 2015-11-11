@@ -37,7 +37,6 @@ func main() {
 			exitStatus, err = runit.GetExitStatus(err)
 			if err != nil {
 				log.Println(err)
-				os.Exit(exitStatus)
 			}
 		}
 		os.Exit(exitStatus)

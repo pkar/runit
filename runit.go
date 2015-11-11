@@ -130,7 +130,7 @@ func (r *Runner) startCmd() error {
 
 // Kill stops the runners subprocess
 func (r *Runner) Kill() error {
-	if r.Cmd.Process == nil {
+	if r.Cmd == nil || r.Cmd.Process == nil {
 		return nil
 	}
 	pinfof("killing subprocess")
