@@ -3,12 +3,19 @@ package runit
 import "fmt"
 
 var (
+	// LogLevel is the level at which to start logging.
+	// 0 debug
+	// 1 info
+	// 2 error
 	LogLevel = InfoLog
 )
 
 const (
+	// DebugLog 0
 	DebugLog = iota
+	// InfoLog 1
 	InfoLog
+	// ErrorLog 2
 	ErrorLog
 )
 
