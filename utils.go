@@ -9,7 +9,7 @@ import (
 
 // WaitFunc listens for signals and restarts the given restart runner
 // on SIGHUP or exits for where appropriate.
-func WaitFunc(do func() error, interrupt chan os.Signal) int {
+func WaitFunc(do func() error, die func() error, interrupt chan os.Signal) int {
 	signal.Notify(interrupt)
 	for {
 		select {
@@ -20,6 +20,7 @@ func WaitFunc(do func() error, interrupt chan os.Signal) int {
 				pdebugf("captured %v restarting...err: %s", sig, err)
 				continue
 			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL:
+				die()
 				pdebugf("captured %v exiting", sig)
 				return 0
 			default:

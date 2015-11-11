@@ -58,7 +58,7 @@ func (r *Runner) Do() (int, error) {
 	if err != nil {
 		return 1, err
 	}
-	status := WaitFunc(r.Kill, r.Interrupt)
+	status := WaitFunc(r.Kill, r.Kill, r.Interrupt)
 	return status, nil
 }
 
@@ -97,7 +97,10 @@ func (r *Runner) Start() error {
 				return
 			default:
 				// run the command and restart after finished.
-				r.cmd.Wait()
+				err := r.cmd.Wait()
+				if err != nil {
+					time.Sleep(time.Second)
+				}
 			}
 		}
 	}()
@@ -155,6 +158,6 @@ func (r *Runner) Kill() error {
 // Shutdown signals closing of the application.
 func (r *Runner) Shutdown() {
 	pinfof("shutting down")
-	r.Kill()
 	close(r.shutdownChan)
+	r.Kill()
 }
