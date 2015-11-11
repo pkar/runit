@@ -8,36 +8,36 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	_, err := New("ls", "test")
+	_, err := New("ls", "test", false)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestNewNoCommand(t *testing.T) {
-	_, err := New("", "abc")
+	_, err := New("", "abc", false)
 	if err == nil {
 		t.Fatal("cmd empty should be err")
 	}
 }
 
 func TestRun(t *testing.T) {
-	runner, err := New("true", "")
+	runner, err := New("true", "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = runner.Run(false)
+	err = runner.Run()
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestRunKeepAlive(t *testing.T) {
-	runner, err := New("true", "")
+	runner, err := New("true", "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = runner.Run(true)
+	err = runner.Run()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,11 +46,11 @@ func TestRunKeepAlive(t *testing.T) {
 }
 
 func TestKill(t *testing.T) {
-	runner, err := New("test/test.sh", "")
+	runner, err := New("test/test.sh", "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = runner.Run(true)
+	err = runner.Run()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,11 +63,11 @@ func TestKill(t *testing.T) {
 }
 
 func TestRestart(t *testing.T) {
-	runner, err := New("test/test.sh", "")
+	runner, err := New("test/test.sh", "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = runner.Run(false)
+	err = runner.Run()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,11 +79,11 @@ func TestRestart(t *testing.T) {
 }
 
 func TestRestartListen(t *testing.T) {
-	runner, err := New("true", "test")
+	runner, err := New("true", "test", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = runner.Run(false)
+	err = runner.Run()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,11 +92,11 @@ func TestRestartListen(t *testing.T) {
 }
 
 func TestWatch(t *testing.T) {
-	runner, err := New("true", "test")
+	runner, err := New("true", "test", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = runner.Run(false)
+	err = runner.Run()
 
 	// create file
 	err = ioutil.WriteFile("test/test.txt", []byte("hello"), 0644)
@@ -152,7 +152,7 @@ func TestWatch(t *testing.T) {
 }
 
 func TestWatchInvalidPath(t *testing.T) {
-	_, err := New("true", "nothere")
+	_, err := New("true", "nothere", false)
 	if err == nil {
 		t.Fatal("should get no folders to watch here")
 	}
