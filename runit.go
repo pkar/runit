@@ -10,11 +10,12 @@ import (
 
 // Runner ...
 type Runner struct {
-	cmdIn        string
-	cmd          *exec.Cmd
-	WatchPath    string
 	Alive        bool
 	Interrupt    chan os.Signal
+	Wait         bool
+	WatchPath    string
+	cmd          *exec.Cmd
+	cmdIn        string
 	eventChan    chan bool
 	shutdownChan chan struct{}
 	mu           *sync.Mutex
@@ -22,17 +23,18 @@ type Runner struct {
 
 // New initializes a command runner and watches for changes
 // in path if watch is given.
-func New(cmdIn string, watchPath string, alive bool) (*Runner, error) {
+func New(cmdIn string, watchPath string, alive bool, wait bool) (*Runner, error) {
 	if cmdIn == "" {
 		return nil, fmt.Errorf("no command defined")
 	}
 	runner := &Runner{
-		cmdIn:        cmdIn,
-		WatchPath:    watchPath,
 		Alive:        alive,
+		Wait:         wait,
+		Interrupt:    make(chan os.Signal, 1),
+		WatchPath:    watchPath,
+		cmdIn:        cmdIn,
 		mu:           &sync.Mutex{},
 		shutdownChan: make(chan struct{}),
-		Interrupt:    make(chan os.Signal, 1),
 	}
 	if watchPath != "" {
 		var err error
@@ -45,24 +47,48 @@ func New(cmdIn string, watchPath string, alive bool) (*Runner, error) {
 	return runner, nil
 }
 
-// Do determines the type of process to run based on Alive and WatchPath.
+// Do determines the type of process to run based on Alive and WatchPath/Wait.
 // It returns the exit status and any error.
-func (r *Runner) Do() (int, error) {
+func (r *Runner) Do() (status int, err error) {
+	switch {
 	// just run the command and return.
-	if !r.Alive && r.WatchPath == "" {
+	case !r.Alive && r.WatchPath == "":
 		return r.Run()
+	// wait for file changes before running the command.
+	case r.WatchPath != "" && r.Wait:
+		go r.Repeat()
+		status = WaitFunc(r.Kill, r.Kill, r.Interrupt)
+	// begin the command and restart on finish or if with watch
+	// on file changes as well.
+	default:
+		err := r.Start()
+		if err != nil {
+			return 1, err
+		}
+		if r.WatchPath != "" {
+			go r.RestartListen()
+		}
+		status = WaitFunc(r.Kill, r.Kill, r.Interrupt)
 	}
-
-	// begin the command
-	err := r.Start()
-	if err != nil {
-		return 1, err
-	}
-	status := WaitFunc(r.Kill, r.Kill, r.Interrupt)
 	return status, nil
 }
 
-// Run runs a subprocess and waits for it status
+// Repeat runs the command on event signals.
+func (r *Runner) Repeat() {
+	for {
+		select {
+		case <-r.shutdownChan:
+			return
+		case <-r.eventChan:
+			status, err := r.Run()
+			if status != 0 || err != nil {
+				perror(status, err)
+			}
+		}
+	}
+}
+
+// Run runs a subprocess and waits for its status
 // to return.
 func (r *Runner) Run() (int, error) {
 	err := r.startCmd()
@@ -81,9 +107,6 @@ func (r *Runner) Run() (int, error) {
 // This should be used with Runner.WaitFunc or something
 // like it.
 func (r *Runner) Start() error {
-	if r.WatchPath != "" || r.Alive {
-		go r.RestartListen()
-	}
 	go func() {
 		for {
 			err := r.startCmd()

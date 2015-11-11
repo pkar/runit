@@ -15,7 +15,7 @@ func init() {
 }
 
 func TestNew(t *testing.T) {
-	_, err := New("ls", "test", false)
+	_, err := New("ls", "test", false, false)
 	t.Log(err)
 	if err != nil {
 		t.Error(err)
@@ -23,21 +23,21 @@ func TestNew(t *testing.T) {
 }
 
 func TestNewNoCommand(t *testing.T) {
-	_, err := New("", "test", false)
+	_, err := New("", "test", false, false)
 	if err == nil {
 		t.Error("cmd empty should be err")
 	}
 }
 
 func TestNewWatchInvalidPath(t *testing.T) {
-	_, err := New("true", "nothere", false)
+	_, err := New("true", "nothere", false, false)
 	if err == nil {
 		t.Fatal("should get no folders to watch here")
 	}
 }
 
 func TestDoRun(t *testing.T) {
-	runner, err := New("true", "", false)
+	runner, err := New("true", "", false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -50,13 +50,33 @@ func TestDoRun(t *testing.T) {
 	}
 }
 
-func TestDoStart(t *testing.T) {
-	r, err := New("true", "", true)
+func TestDoRepeat(t *testing.T) {
+	r, err := New("true", ".", true, true)
 	if err != nil {
 		t.Error(err)
 	}
 	go func() {
 		time.Sleep(500 * time.Millisecond)
+		r.Shutdown()
+		r.Interrupt <- syscall.SIGINT
+	}()
+	status, err := r.Do()
+	if err != nil {
+		t.Error(err)
+	}
+	if status != 0 {
+		t.Error("status not 0 got", status)
+	}
+}
+
+func TestDoStart(t *testing.T) {
+	r, err := New("true", "", true, false)
+	if err != nil {
+		t.Error(err)
+	}
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		r.Shutdown()
 		r.Interrupt <- syscall.SIGINT
 	}()
 	status, err := r.Do()
@@ -69,7 +89,7 @@ func TestDoStart(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-	runner, err := New("true", "", false)
+	runner, err := New("true", "", false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,12 +103,13 @@ func TestRun(t *testing.T) {
 }
 
 func TestKill(t *testing.T) {
-	r, err := New("sleep 1", "", true)
+	r, err := New("sleep 1", "", true, false)
 	if err != nil {
 		t.Error(err)
 	}
 	go func() {
 		time.Sleep(500 * time.Millisecond)
+		r.Shutdown()
 		r.Interrupt <- syscall.SIGINT
 	}()
 	status, err := r.Do()
@@ -102,7 +123,7 @@ func TestKill(t *testing.T) {
 }
 
 func TestShutdown(t *testing.T) {
-	r, err := New("sleep 1", "", true)
+	r, err := New("sleep 1", "", true, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -121,7 +142,7 @@ func TestShutdown(t *testing.T) {
 }
 
 func TestSighup(t *testing.T) {
-	r, err := New("sleep 1", "", true)
+	r, err := New("sleep 1", "", true, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -134,7 +155,7 @@ func TestSighup(t *testing.T) {
 }
 
 func TestWatch(t *testing.T) {
-	r, err := New("true", "test", true)
+	r, err := New("true", "test", true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
