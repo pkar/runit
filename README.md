@@ -9,8 +9,8 @@ for use in Docker containers.
 Can be found in [releases](https://github.com/pkar/runit/releases)
 
 ```bash
-$ curl -o runit-v0.0.4.linux.tar.gz -L https://github.com/pkar/runit/releases/download/v0.0.4/runit-v0.0.4.linux.tar.gz
-$ tar -xzvf runit-v0.0.4.linux.tar.gz
+$ curl -o runit-v0.0.5.linux.tar.gz -L https://github.com/pkar/runit/releases/download/v0.0.5/runit-v0.0.5.linux.tar.gz
+$ tar -xzvf runit-v0.0.5.linux.tar.gz
 $ chmod +x runit && mv runit /usr/local/bin/
 ```
 
@@ -22,8 +22,10 @@ $ runit
     	try to keep the command alive if it dies, you would use this for long running services like a server *optional
   -cmd string
     	command to run *required
-  -loglevel int
-    	logging level 1 is info (default 1)
+  -ignore string
+    	a comma seperated list of regex patterns to ignore *optional
+  -version
+    	print the version
   -wait
     	used with watch, this will wait for file changes and then run the cmd given *optional
   -watch string
@@ -45,7 +47,7 @@ blah
 2015/08/04 21:46:05 event:  "foo": CHMOD
 
 $ # long running processes with restart and watch
-$ runit --restart --watch . --cmd="test/test.sh"
+$ runit --alive --watch . --cmd="test/test.sh"
 INFO 2015/02/03 20:54:59 runit.go:100: running test/test.sh
 foo
 foo
@@ -57,7 +59,7 @@ $ # long running processes without watch
 $ # process can be restarted by sending sighup to runit or
 $ # or killing the subprocess cmd
 $ # kill -SIGHUP $PID
-$ runit --restart --cmd="test/test.sh"
+$ runit --alive --cmd="test/test.sh" --ignore=".*.pyc,.*.DS_Store$"
 2015/08/04 21:47:14 running test/test.sh
 2015/08/04 21:47:14 running test/test.sh
 foo

@@ -2,6 +2,7 @@ package runit
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"sync"
@@ -14,6 +15,7 @@ type Runner struct {
 	Interrupt    chan os.Signal
 	Wait         bool
 	WatchPath    string
+	Ignore       []string
 	cmd          *exec.Cmd
 	cmdIn        string
 	eventChan    chan bool
@@ -23,13 +25,14 @@ type Runner struct {
 
 // New initializes a command runner and watches for changes
 // in path if watch is given.
-func New(cmdIn string, watchPath string, alive bool, wait bool) (*Runner, error) {
+func New(cmdIn string, watchPath string, ignore []string, alive bool, wait bool) (*Runner, error) {
 	if cmdIn == "" {
 		return nil, fmt.Errorf("no command defined")
 	}
 	runner := &Runner{
 		Alive:        alive,
 		Wait:         wait,
+		Ignore:       ignore,
 		Interrupt:    make(chan os.Signal, 1),
 		WatchPath:    watchPath,
 		cmdIn:        cmdIn,
@@ -38,7 +41,7 @@ func New(cmdIn string, watchPath string, alive bool, wait bool) (*Runner, error)
 	}
 	if watchPath != "" {
 		var err error
-		runner.eventChan, err = runner.Watch(runner.shutdownChan)
+		runner.eventChan, err = runner.Watch(runner.shutdownChan, ignore)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +85,7 @@ func (r *Runner) Repeat() {
 		case <-r.eventChan:
 			status, err := r.Run()
 			if status != 0 || err != nil {
-				perror(status, err)
+				log.Println("[ERR] ", status, err)
 			}
 		}
 	}
@@ -111,7 +114,7 @@ func (r *Runner) Start() error {
 		for {
 			err := r.startCmd()
 			if err != nil {
-				perror(err)
+				log.Println("[ERR] ", err)
 				time.Sleep(time.Second)
 			}
 
@@ -135,10 +138,10 @@ func (r *Runner) RestartListen() {
 	for {
 		select {
 		case <-r.eventChan:
-			pinfof("restart event")
+			log.Println("restart event")
 			err := r.Kill()
 			if err != nil {
-				perror(err)
+				log.Println("[ERR] ", err)
 			}
 		case <-r.shutdownChan:
 			return
@@ -152,7 +155,7 @@ func (r *Runner) startCmd() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	pdebugf("running %s", r.cmdIn)
+	log.Printf("running %s", r.cmdIn)
 
 	r.cmd = exec.Command("bash", "-c", "-e", r.cmdIn)
 	r.cmd.Stdin = os.Stdin
@@ -161,7 +164,7 @@ func (r *Runner) startCmd() error {
 
 	err := r.cmd.Start()
 	if err != nil {
-		perror(err)
+		log.Println("[ERR] ", err)
 	}
 	return err
 }
@@ -174,13 +177,13 @@ func (r *Runner) Kill() error {
 	if r.cmd == nil || r.cmd.Process == nil {
 		return nil
 	}
-	pinfof("killing subprocess")
+	log.Println("killing subprocess")
 	return r.cmd.Process.Kill()
 }
 
 // Shutdown signals closing of the application.
 func (r *Runner) Shutdown() {
-	pinfof("shutting down")
+	log.Println("shutting down")
 	close(r.shutdownChan)
 	r.Kill()
 }

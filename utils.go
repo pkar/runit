@@ -1,6 +1,7 @@
 package runit
 
 import (
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -17,14 +18,14 @@ func WaitFunc(do func() error, die func() error, interrupt chan os.Signal) int {
 			switch sig {
 			case syscall.SIGHUP:
 				err := do()
-				pdebugf("captured %v restarting...err: %s", sig, err)
+				log.Printf("captured %v restarting...err: %s", sig, err)
 				continue
 			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL:
 				die()
-				pdebugf("captured %v exiting", sig)
+				log.Printf("captured %v exiting", sig)
 				return 0
 			default:
-				pdebugf("captured %v continue...", sig)
+				log.Printf("captured %v continue...", sig)
 				continue
 			}
 		}

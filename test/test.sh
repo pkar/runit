@@ -2,5 +2,5 @@
 
 while true; do
 	echo foo;
-	sleep 1;
+	sleep 3;
 done
