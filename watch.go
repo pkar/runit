@@ -1,10 +1,10 @@
 package runit
 
 import (
-	"log"
 	"os"
 
 	"github.com/go-fsnotify/fsnotify"
+	"github.com/pkar/log"
 )
 
 // Watch watches the runner watch path for changes and
@@ -15,7 +15,7 @@ func (r *Runner) Watch(shutdown <-chan struct{}, ignore []string) (chan bool, er
 
 	watcher, err := NewRecursiveWatcher(r.WatchPath, ignore)
 	if err != nil {
-		log.Println("[ERR]", err)
+		log.Error.Println(err)
 		return nil, err
 	}
 
@@ -25,14 +25,14 @@ func (r *Runner) Watch(shutdown <-chan struct{}, ignore []string) (chan bool, er
 			case <-shutdown:
 				watcher.Close()
 			case event := <-watcher.Events:
-				log.Println("event:", event)
+				log.Debug.Println("event:", event)
 				switch {
 				case event.Op&fsnotify.Create == fsnotify.Create:
 					// create a file or directory
 					fi, err := os.Stat(event.Name)
 					if err != nil {
 						// eg. stat .subl513.tmp : no such file or directory
-						log.Println("[ERR]", err)
+						log.Error.Println(err)
 						continue
 					}
 
@@ -40,32 +40,32 @@ func (r *Runner) Watch(shutdown <-chan struct{}, ignore []string) (chan bool, er
 						continue
 					}
 					if fi.IsDir() {
-						log.Printf("detected new directory %s", event.Name)
+						log.Debug.Printf("detected new directory %s", event.Name)
 						watcher.AddFolder(event.Name)
 						restart <- true
-						log.Printf("added new folder: %s", event.Name)
+						log.Info.Printf("added new folder: %s", event.Name)
 					} else {
 						// created a file
 						restart <- true
-						log.Printf("added new file: %s", event.Name)
+						log.Info.Printf("added new file: %s", event.Name)
 					}
 				case event.Op&fsnotify.Write == fsnotify.Write:
 					if !watcher.ShouldIgnoreFile(event.Name) {
 						restart <- true
-						log.Printf("modified file: %s", event.Name)
+						log.Debug.Printf("modified file: %s", event.Name)
 					}
 				case event.Op&fsnotify.Remove == fsnotify.Remove:
 					watcher.Remove(event.Name)
 					restart <- true
-					log.Printf("removed file: %s", event.Name)
+					log.Info.Printf("removed file: %s", event.Name)
 				case event.Op&fsnotify.Chmod == fsnotify.Chmod:
-					log.Printf("chmod file: %s", event.Name)
+					log.Debug.Printf("chmod file: %s", event.Name)
 				case event.Op&fsnotify.Rename == fsnotify.Rename:
 					// renaming a file triggers a create event
-					log.Printf("renamed file: %s", event.Name)
+					log.Debug.Printf("renamed file: %s", event.Name)
 				}
 			case err := <-watcher.Errors:
-				log.Println("[ERR]", err)
+				log.Error.Println(err)
 			}
 		}
 	}(restartChan)

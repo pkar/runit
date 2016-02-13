@@ -2,11 +2,12 @@ package runit
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"sync"
 	"time"
+
+	"github.com/pkar/log"
 )
 
 // Runner ...
@@ -85,7 +86,7 @@ func (r *Runner) Repeat() {
 		case <-r.eventChan:
 			status, err := r.Run()
 			if status != 0 || err != nil {
-				log.Println("[ERR] ", status, err)
+				log.Error.Println(status, err)
 			}
 		}
 	}
@@ -114,7 +115,7 @@ func (r *Runner) Start() error {
 		for {
 			err := r.startCmd()
 			if err != nil {
-				log.Println("[ERR] ", err)
+				log.Error.Println(err)
 				time.Sleep(time.Second)
 			}
 
@@ -138,10 +139,10 @@ func (r *Runner) RestartListen() {
 	for {
 		select {
 		case <-r.eventChan:
-			log.Println("restart event")
+			log.Info.Println("restart event")
 			err := r.Kill()
 			if err != nil {
-				log.Println("[ERR] ", err)
+				log.Error.Println(err)
 			}
 		case <-r.shutdownChan:
 			return
@@ -155,7 +156,7 @@ func (r *Runner) startCmd() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	log.Printf("running %s", r.cmdIn)
+	log.Info.Printf("running %s", r.cmdIn)
 
 	r.cmd = exec.Command("bash", "-c", "-e", r.cmdIn)
 	r.cmd.Stdin = os.Stdin
@@ -164,7 +165,7 @@ func (r *Runner) startCmd() error {
 
 	err := r.cmd.Start()
 	if err != nil {
-		log.Println("[ERR] ", err)
+		log.Error.Println(err)
 	}
 	return err
 }
@@ -177,13 +178,13 @@ func (r *Runner) Kill() error {
 	if r.cmd == nil || r.cmd.Process == nil {
 		return nil
 	}
-	log.Println("killing subprocess")
+	log.Info.Println("killing subprocess")
 	return r.cmd.Process.Kill()
 }
 
 // Shutdown signals closing of the application.
 func (r *Runner) Shutdown() {
-	log.Println("shutting down")
+	log.Info.Println("shutting down")
 	close(r.shutdownChan)
 	r.Kill()
 }

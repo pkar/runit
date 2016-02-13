@@ -27,7 +27,6 @@ func TestShouldIgnoreFile(t *testing.T) {
 }
 
 func TestShouldIgnoreFileDefaults(t *testing.T) {
-	return
 	ignore := []string{}
 	w, _ := NewRecursiveWatcher("./", ignore)
 

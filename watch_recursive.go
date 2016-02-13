@@ -1,13 +1,13 @@
 package runit
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/go-fsnotify/fsnotify"
+	"github.com/pkar/log"
 )
 
 // RecursiveWatcher https://github.com/nathany/looper/blob/master/watch.go#L13
@@ -28,7 +28,7 @@ func NewRecursiveWatcher(path string, ignore []string) (*RecursiveWatcher, error
 	}
 	rw := &RecursiveWatcher{Watcher: watcher, Ignore: ignore}
 
-	log.Println("watching folders in", path)
+	log.Info.Println("watching folders in", path)
 
 	rw.AddFolder(path)
 	return rw, nil
@@ -45,10 +45,10 @@ func (w *RecursiveWatcher) AddFolder(path string) {
 	for _, folder := range subFolders {
 		err := w.Add(folder)
 		if err != nil {
-			log.Printf("error watching: %s %v\n", folder, err)
+			log.Error.Printf("error watching: %s %v\n", folder, err)
 			return
 		}
-		log.Printf("added folder %s", folder)
+		log.Info.Printf("added folder %s", folder)
 	}
 }
 
@@ -77,11 +77,11 @@ func (w *RecursiveWatcher) ShouldIgnoreFile(name string) bool {
 		for _, ignoreInput := range w.Ignore {
 			ignore, err := regexp.Compile(ignoreInput)
 			if err != nil {
-				log.Println("[ERR]", err, ignoreInput)
+				log.Error.Println(err, ignoreInput)
 				continue
 			}
 			if ignore.MatchString(name) {
-				log.Printf("ignoring %s", name)
+				log.Info.Printf("ignoring %s", name)
 				return true
 			}
 		}
