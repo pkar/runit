@@ -5,7 +5,6 @@ PWD=`pwd`
 UNAME=${UNAME:-`uname | tr '[:upper:]' '[:lower:]'`}
 ARCH=${ARCH:-"amd64"}
 GOOS=${GOOS:-"linux"}
-PATH="$PWD/vendor/bin:$PWD/bin/$ARCH:$PWD:$PATH"
 IMAGE_TAG=$(git branch | cut -d ' ' -f 2 | tr -d '\040\011\012\015' | tr "/" "_")
 REPO=github.com/pkar/runit
 COMPONENT=runit
@@ -54,7 +53,7 @@ release() {
 test() {
 	go test -cover .
 	golint .
-	go tool vet --composites=false .
+	go vet .
 }
 
 testv() {

@@ -1,0 +1,30 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "github.com/fsnotify/fsnotify",
+			"repository": "https://github.com/fsnotify/fsnotify",
+			"vcs": "git",
+			"revision": "a8a77c9133d2d6fd8334f3260d06f60e8d80a5fb",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/go-fsnotify/fsnotify",
+			"repository": "https://github.com/go-fsnotify/fsnotify",
+			"vcs": "git",
+			"revision": "a8a77c9133d2d6fd8334f3260d06f60e8d80a5fb",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "golang.org/x/sys/unix",
+			"repository": "https://go.googlesource.com/sys",
+			"vcs": "git",
+			"revision": "62bee037599929a6e9146f29d10dd5208c43507d",
+			"branch": "master",
+			"path": "/unix",
+			"notests": true
+		}
+	]
+}
