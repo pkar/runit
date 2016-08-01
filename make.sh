@@ -10,7 +10,7 @@ REPO=github.com/pkar/runit
 COMPONENT=runit
 IMAGE_NAME=pkar/$COMPONENT
 IMAGE_SPEC=$IMAGE_NAME:$IMAGE_TAG
-TAG=v0.0.5
+TAG=v0.0.6
 REPO=github.com/pkar/$COMPONENT
 CMD=$REPO/cmd/$COMPONENT
 PACKAGE=${PACKAGE:-""}
@@ -52,7 +52,7 @@ release() {
 
 test() {
 	go test -cover .
-	golint .
+	#golint .
 	go vet .
 }
 
@@ -76,8 +76,7 @@ bench() {
 }
 
 vendor() {
-	go get -u github.com/FiloSottile/gvt
-	gvt fetch github.com/go-fsnotify/fsnotify
+	glide update --update-vendored --strip-vcs
 }
 
 docker_test() {

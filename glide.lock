@@ -1,0 +1,12 @@
+hash: 03c658f8463421f663613b756cbfff1617d2c6fc3a7b55ce95fc2911c5d56897
+updated: 2016-07-31T21:41:20.975461662-07:00
+imports:
+- name: github.com/go-fsnotify/fsnotify
+  version: a8a77c9133d2d6fd8334f3260d06f60e8d80a5fb
+- name: github.com/pkar/log
+  version: 0ce5e78910d95da0c34edfae7a8b9c15bab7667a
+- name: golang.org/x/sys
+  version: a646d33e2ee3172a661fc09bca23bb4889a41bc8
+  subpackages:
+  - unix
+testImports: []
