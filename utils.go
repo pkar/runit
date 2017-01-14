@@ -1,12 +1,11 @@
 package runit
 
 import (
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"syscall"
-
-	"github.com/pkar/log"
 )
 
 // WaitFunc listens for signals and restarts the given restart runner
@@ -19,14 +18,14 @@ func WaitFunc(do func() error, die func() error, interrupt chan os.Signal) int {
 			switch sig {
 			case syscall.SIGHUP:
 				err := do()
-				log.Info.Printf("captured %v restarting...err: %s", sig, err)
+				log.Printf("INFO: captured %v restarting...err: %s\n", sig, err)
 				continue
 			case syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL:
 				die()
-				log.Info.Printf("captured %v exiting", sig)
+				log.Printf("INFO: captured %v exiting\n", sig)
 				return 0
 			default:
-				log.Info.Printf("captured %v continue...", sig)
+				log.Printf("INFO: captured %v continue...\n", sig)
 				continue
 			}
 		}
