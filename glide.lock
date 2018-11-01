@@ -1,7 +1,7 @@
 hash: 286132792ead25e754025f4c5e9c1890fe0bf75b7de0f7245f76becdb30ad8d7
 updated: 2017-01-14T08:36:30.749330827-08:00
 imports:
-- name: github.com/go-fsnotify/fsnotify
+- name: github.com/fsnotify/fsnotify
   version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: golang.org/x/sys
   version: d75a52659825e75fff6158388dddc6a5b04f9ba5

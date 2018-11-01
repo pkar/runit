@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/go-fsnotify/fsnotify"
+	"github.com/fsnotify/fsnotify"
 )
 
 // Watch watches the runner watch path for changes and

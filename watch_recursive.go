@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-fsnotify/fsnotify"
+	"github.com/fsnotify/fsnotify"
 )
 
 // RecursiveWatcher https://github.com/nathany/looper/blob/master/watch.go#L13
